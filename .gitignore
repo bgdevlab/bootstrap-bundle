@@ -4,3 +4,4 @@ phpunit.xml
 
 Resources/public/js/bootstrap.compiled*.js
 Resources/public/css/bootstrap.compiled*.css
+/.idea/
