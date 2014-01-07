@@ -22,6 +22,8 @@ use Symfony\Component\HttpKernel\DependencyInjection\Extension;
  * @copyright  2012-2013 Florian Eckerstorfer
  * @license    http://opensource.org/licenses/MIT The MIT License
  * @link       http://bootstrap.braincrafted.com Bootstrap for Symfony2
+ *
+ * @codeCoverageIgnore
  */
 class BcBootstrapExtension extends Extension implements PrependExtensionInterface
 {
@@ -40,7 +42,7 @@ class BcBootstrapExtension extends Extension implements PrependExtensionInterfac
     public function load(array $configs, ContainerBuilder $container)
     {
         $configuration = new Configuration();
-        $config = $this->processConfiguration($configuration, $configs);
+        $this->processConfiguration($configuration, $configs);
 
         $loader = new Loader\YamlFileLoader(
             $container,
@@ -56,22 +58,30 @@ class BcBootstrapExtension extends Extension implements PrependExtensionInterfac
     {
         $bundles = $container->getParameter('kernel.bundles');
 
-        // Configure AsseticBundle
-        if (isset($bundles['AsseticBundle'])) {
-            $this->configureAsseticBundle($container);
+        $configs = $container->getExtensionConfig($this->getAlias());
+        $config = $this->processConfiguration(new Configuration(), $configs);
+
+        // Configure Assetic if AsseticBundle is activated and the option
+        // "bc_bootstrap.auto_configure.assetic" is set to TRUE (default value).
+        if (isset($bundles['AsseticBundle']) && $config['auto_configure']['assetic']) {
+            $this->configureAsseticBundle($container, $config);
         }
 
-        // Configure TwigBundle
-        if (isset($bundles['TwigBundle'])) {
+        // Configure Twig if TwigBundle is activated and the option
+        // "bc_bootstrap.auto_configure.twig" is set to TRUE (default value).
+        if (isset($bundles['TwigBundle']) && $config['auto_configure']['twig']) {
             $this->configureTwigBundle($container);
         }
 
-        // Configure KnpMenuBundle
-        if (isset($bundles['TwigBundle']) && isset($bundles['KnpMenuBundle'])) {
+        // Configure KnpMenu if KnpMenuBundle and TwigBundle are activated and the option
+        // "bc_bootstrap.auto_configure.knp_menu" is set to TRUE (default value).
+        if (isset($bundles['TwigBundle']) && isset($bundles['KnpMenuBundle']) && $config['auto_configure']['knp_menu']) {
             $this->configureKnpMenuBundle($container);
         }
 
-        if (isset($bundles['TwigBundle']) && isset($bundles['KnpPaginatorBundle'])) {
+        // Configure KnpPaginiator if KnpPaginatorBundle and TwigBundle are activated and the option
+        // "bc_bootstrap.auto_configure.knp_paginator" is set to TRUE (default value).
+        if (isset($bundles['TwigBundle']) && isset($bundles['KnpPaginatorBundle']) && $config['auto_configure']['knp_paginator']) {
             $this->configureKnpPaginatorBundle($container);
         }
     }
@@ -80,14 +90,14 @@ class BcBootstrapExtension extends Extension implements PrependExtensionInterfac
      * Configures the AsseticBundle.
      *
      * @param ContainerBuilder $container The service container
+     * @param array            $config    The bundle configuration
      *
      * @return void
+     *
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
-    private function configureAsseticBundle(ContainerBuilder $container)
+    private function configureAsseticBundle(ContainerBuilder $container, array $config)
     {
-        $configs = $container->getExtensionConfig($this->getAlias());
-        $config = $this->processConfiguration(new Configuration(), $configs);
-
         foreach ($container->getExtensions() as $name => $extension) {
             switch ($name) {
                 case 'assetic':
@@ -108,6 +118,8 @@ class BcBootstrapExtension extends Extension implements PrependExtensionInterfac
      * @param ContainerBuilder $container The service container
      *
      * @return void
+     *
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     private function configureTwigBundle(ContainerBuilder $container)
     {
@@ -129,6 +141,8 @@ class BcBootstrapExtension extends Extension implements PrependExtensionInterfac
      * @param ContainerBuilder $container The service container
      *
      * @return void
+     *
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     private function configureKnpMenuBundle(ContainerBuilder $container)
     {
@@ -150,6 +164,8 @@ class BcBootstrapExtension extends Extension implements PrependExtensionInterfac
      * @param ContainerBuilder $container The service container
      *
      * @return void
+     *
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     private function configureKnpPaginatorBundle(ContainerBuilder $container)
     {
@@ -167,20 +183,48 @@ class BcBootstrapExtension extends Extension implements PrependExtensionInterfac
 
     private function buildAsseticConfig(array $config)
     {
+        $output = array();
+        if ($config['less_filter'] !== 'none') {
+            $output['bootstrap_css'] = $this->buildAsseticBootstrapCssWithLessConfig($config);
+        } else {
+            $output['bootstrap_css'] = $this->buildAsseticBootstrapCssWithoutLessConfig($config);
+        }
+        $output['bootstrap_js'] = $this->buildAsseticBootstrapJsConfig($config);
+        $output['jquery'] = $this->buildAsseticJqueryConfig($config);
+        return $output;
+    }
+
+    private function buildAsseticBootstrapCssWithoutLessConfig(array $config)
+    {
+        $inputs = array(
+            $config['assets_dir'].'/docs/assets/css/bootstrap.css',
+        );
+
+        if ($config['include_responsive'] === true) {
+            $inputs[] = $config['assets_dir'].'/docs/assets/css/bootstrap-responsive.css';
+        }
+
         return array(
-            'bootstrap_css' => $this->buildAsseticBootstrapCssConfig($config),
-            'bootstrap_js'  => $this->buildAsseticBootstrapJsConfig($config),
-            'jquery'        => $this->buildAsseticJqueryConfig($config)
+            'inputs'        => $inputs,
+            'filters'       => array('cssrewrite'),
+            'output'        => $config['output_dir'].'/css/bootstrap.css'
         );
     }
 
-    private function buildAsseticBootstrapCssConfig(array $config)
+    private function buildAsseticBootstrapCssWithLessConfig(array $config)
     {
+        $inputs = array(
+            $config['assets_dir'].'/less/bootstrap.less'
+        );
+
+        if ($config['include_responsive'] === true) {
+            $inputs[] = $config['assets_dir'].'/less/responsive.less';
+        }
+
+        $inputs[] = __DIR__.'/../Resources/less/form.less';
+
         return array(
-            'inputs'        => array(
-                $config['assets_dir'].'/less/bootstrap.less',
-                $config['assets_dir'].'/less/responsive.less'
-            ),
+            'inputs'        => $inputs,
             'filters'       => array($config['less_filter'], 'cssrewrite'),
             'output'        => $config['output_dir'].'/css/bootstrap.css'
         );
@@ -202,7 +246,8 @@ class BcBootstrapExtension extends Extension implements PrependExtensionInterfac
                 $config['assets_dir'].'/js/bootstrap-scrollspy.js',
                 $config['assets_dir'].'/js/bootstrap-tab.js',
                 $config['assets_dir'].'/js/bootstrap-typeahead.js',
-                $config['assets_dir'].'/js/bootstrap-affix.js'
+                $config['assets_dir'].'/js/bootstrap-affix.js',
+                __DIR__.'/../Resources/js/bc-bootstrap-collection.js'
             ),
             'output'        => $config['output_dir'].'/js/bootstrap.js'
         );

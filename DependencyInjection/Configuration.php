@@ -19,6 +19,8 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  * @copyright  2012-2013 Florian Eckerstorfer
  * @license    http://opensource.org/licenses/MIT The MIT License
  * @link       http://bootstrap.braincrafted.com Bootstrap for Symfony2
+ *
+ * @codeCoverageIgnore
  */
 class Configuration implements ConfigurationInterface
 {
@@ -37,14 +39,29 @@ class Configuration implements ConfigurationInterface
 
         $rootNode
             ->children()
-            ->scalarNode('output_dir')->defaultValue('')->end()
-            ->scalarNode('assets_dir')->defaultValue('%kernel.root_dir%/../vendor/twitter/bootstrap')->end()
-            ->scalarNode('jquery_path')->defaultValue('%kernel.root_dir%/../vendor/jquery/jquery/jquery-1.9.1.js')->end()
-            ->scalarNode('less_filter')
-                ->defaultValue('less')
-                ->validate()
-                ->ifNotInArray(array('less', 'lessphp'))
-                    ->thenInvalid('Invalid less filter "%s"')
+                ->scalarNode('output_dir')->defaultValue('')->end()
+                ->scalarNode('assets_dir')
+                    ->defaultValue('%kernel.root_dir%/../vendor/twbs/bootstrap')
+                ->end()
+                ->scalarNode('jquery_path')
+                    ->defaultValue('%kernel.root_dir%/../vendor/jquery/jquery/jquery-1.9.1.js')
+                ->end()
+                ->scalarNode('less_filter')
+                    ->defaultValue('less')
+                    ->validate()
+                        ->ifNotInArray(array('less', 'lessphp', 'none'))
+                        ->thenInvalid('Invalid less filter "%s"')
+                    ->end()
+                ->end()
+                ->booleanNode('include_responsive')->defaultValue(true)->end()
+                ->arrayNode('auto_configure')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->booleanNode('assetic')->defaultValue(true)->end()
+                        ->booleanNode('twig')->defaultValue(true)->end()
+                        ->booleanNode('knp_menu')->defaultValue(true)->end()
+                        ->booleanNode('knp_paginator')->defaultValue(true)->end()
+                    ->end()
                 ->end()
             ->end();
 

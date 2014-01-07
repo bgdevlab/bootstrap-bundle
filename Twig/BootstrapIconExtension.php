@@ -29,8 +29,16 @@ class BootstrapIconExtension extends Twig_Extension
     public function getFilters()
     {
         return array(
-            'parse_icons'   => new Twig_Filter_Method($this, 'parseIconsFilter', array('is_safe' => array('html'))),
-            'icon'          => new Twig_Filter_Method($this, 'iconFilter', array('is_safe' => array('html')))
+            'parse_icons'   => new Twig_Filter_Method(
+                $this,
+                'parseIconsFilter',
+                array('pre_escape' => 'html', 'is_safe' => array('html'))
+            ),
+            'icon'          => new Twig_Filter_Method(
+                $this,
+                'iconFilter',
+                array('pre_escape' => 'html', 'is_safe' => array('html'))
+            )
         );
     }
 
@@ -47,8 +55,9 @@ class BootstrapIconExtension extends Twig_Extension
         $that = $this;
 
         return preg_replace_callback(
-            '/\.icon-([a-z0-9-]+)/',
+            '/\.icon-([a-z0-9-]+)(\((white|black)\))?/',
             function ($matches) use ($color, $that) {
+                $color = isset($matches[3]) ? $matches[3] : $color;
                 return $that->iconFilter($matches[1], $color);
             },
             $text

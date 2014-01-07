@@ -1,3 +1,23 @@
+{% block form_start %}
+{% spaceless %}
+    {% set method = method|upper %}
+    {% if method in ["GET", "POST"] %}
+        {% set form_method = method %}
+    {% else %}
+        {% set form_method = "POST" %}
+    {% endif %}
+    {% if form_type is defined %}
+    	{% set attr_form = attr|merge({'class': (attr.class|default('') ~ ' form-' ~ form_type)|trim}) %}
+    {% else %}
+    	{% set attr_form = attr %}
+    {% endif %}
+    <form method="{{ form_method|lower }}" action="{{ action }}"{% for attrname, attrvalue in attr_form %} {{ attrname }}="{{ attrvalue }}"{% endfor %}{% if multipart %} enctype="multipart/form-data"{% endif %}>
+    {% if form_method != method %}
+        <input type="hidden" name="_method" value="{{ method }}" />
+    {% endif %}
+{% endspaceless %}
+{% endblock form_start %}
+
 {# Widgets #}
 
 {% block form_widget %}
@@ -13,6 +33,9 @@
 {% block form_widget_simple %}
 {% spaceless %}
     {% set type = type|default('text') %}
+    {% if attr.placeholder is defined %}
+        {% set attr = attr|merge({'placeholder': attr.placeholder|trans({}, translation_domain) }) %}
+    {% endif %}
     {% if attr.prepend_input is defined and attr.append_input is defined and attr.prepend_input is not empty and attr.append_input is not empty %}
         {{ block('form_widget_prepend_append_input') }}
     {% elseif attr.prepend_input is defined and attr.prepend_input is not empty %}
@@ -22,11 +45,12 @@
     {% else %}
         <input type="{{ type }}" {{ block('widget_attributes') }} {% if value is not empty %}value="{{ value }}" {% endif %}>
     {% endif %}
-    {% if attr.help_block is defined %}
-        {{ block('help_block') }}
-    {% endif %}
-    {% if attr.help is defined %}
+    {% if attr.help is defined and attr.help is not empty %}
         {{ block('help_inline') }}
+    {% endif %}
+    {{ form_errors(form) }}
+    {% if attr.help_block is defined and attr.help_block is not empty %}
+        {{ block('help_block') }}
     {% endif %}
 {% endspaceless %}
 {% endblock form_widget_simple %}
@@ -43,7 +67,7 @@
         </span>
         {% set append_input = attr.append_input|trans({}, translation_domain) %}
         {% set attr = attr|merge({'prepend_input': '', 'append_input': ''}) %}
-        {{ block('form_widget_simple') }}
+        <input type="{{ type }}" {{ block('widget_attributes') }} {% if value is not empty %}value="{{ value }}" {% endif %}>
         <span class="add-on">
         {% if attr.append_input.icon is defined and attr.append_input.icon is not empty %}
             <i class="{{ attr.append_input.icon }}"></i>
@@ -66,7 +90,7 @@
     {% endif %}
     </span>
         {% set attr = attr|merge({'prepend_input': ''}) %}
-        {{ block('form_widget_simple') }}
+        <input type="{{ type }}" {{ block('widget_attributes') }} {% if value is not empty %}value="{{ value }}" {% endif %}>
     </div>
 {% endspaceless %}
 {% endblock form_widget_prepend_input %}
@@ -76,7 +100,7 @@
     <div class="input-append">
         {% set append_input = attr.append_input|trans({}, translation_domain) %}
         {% set attr = attr|merge({'append_input': ''}) %}
-        {{ block('form_widget_simple') }}
+        <input type="{{ type }}" {{ block('widget_attributes') }} {% if value is not empty %}value="{{ value }}" {% endif %}>
         <span class="add-on">
         {% if attr.append_input.icon is defined and attr.append_input.icon is not empty %}
             <i class="{{ attr.append_input.icon }}"></i>
@@ -108,6 +132,34 @@
     {{ block('form_widget') }}
 {% endspaceless %}
 {% endblock collection_widget %}
+
+{% block bootstrap_collection_widget %}
+{% spaceless %}
+    {% if prototype is defined %}
+        {% set prototype_html = form_widget(prototype) %}
+        {% if form.vars.allow_delete %}
+            {% set prototype_html = prototype_html ~ ' &nbsp;<a href="#" class="btn btn-danger btn-small" data-removefield="collection" data-field="__id__"><i class="icon-minus-sign icon-white"></i> ' ~ form.vars.delete_button_text ~ '</a>' %}
+        {% endif %}
+        {% set attr = attr|merge({'data-prototype': prototype_html }) %}
+    {% endif %}
+    <div {{ block('widget_container_attributes') }}>
+        <ul class="unstyled">
+            {% for field in form %}
+                <li>
+                    {{ form_widget(field) }}
+                    {{ form_errors(field) }}
+                    {% if form.vars.allow_delete %}
+                    &nbsp;<a href="#" class="btn btn-danger btn-small" data-removefield="collection" data-field="{{ field.vars.id }}"><i class="icon-minus-sign icon-white"></i> {{ form.vars.delete_button_text }}</a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+        {% if form.vars.allow_add %}
+            <a href="#" class="btn btn-primary btn-small" data-addfield="collection" data-collection="{{ form.vars.id }}"><i class="icon-plus-sign icon-white"></i> {{ form.vars.add_button_text }}</a>
+        {% endif %}
+    </div>
+{% endspaceless %}
+{% endblock bootstrap_collection_widget %}
 
 {% block textarea_widget %}
 {% spaceless %}
@@ -183,13 +235,30 @@
 {% block datetime_widget %}
 {% spaceless %}
     {% if widget == 'single_text' %}
+        {% set attr = attr|merge({'date': ''}) %}
+        {% set attr = attr|merge({'time': ''}) %}
         {{ block('form_widget_simple') }}
     {% else %}
+        {% set attr = { 'date': {}, 'time': {} }|merge(attr) %}
+
+        {% set dateAttr = attr.date %}
+        {% set timeAttr = attr.time %}
+
+        {% set attr = attr|merge({'date': ''}) %}
+        {% set attr = attr|merge({'time': ''}) %}
         <div {{ block('widget_container_attributes') }}>
+            {% if 'single_text' == form.date.vars.widget %}
+                {% set dateAttr = { 'class': 'input-medium' }|merge(dateAttr) %}
+            {% endif %}
+            {% if 'single_text' == form.time.vars.widget %}
+                {% set timeAttr = { 'class': 'input-medium' }|merge(timeAttr) %}
+            {% endif %}
+
             {{ form_errors(form.date) }}
             {{ form_errors(form.time) }}
-            {{ form_widget(form.date) }}
-            {{ form_widget(form.time) }}
+            {{ form_widget(form.date, { 'attr':  { 'placeholder': 'Date' }|merge(dateAttr) }) }}&nbsp;
+            {{ form_widget(form.time, { 'attr': { 'placeholder': 'Time' }|merge(timeAttr) }) }}
+            {{ form_errors(form) }}
         </div>
     {% endif %}
 {% endspaceless %}
@@ -201,10 +270,11 @@
         {{ block('form_widget_simple') }}
     {% else %}
         <div {{ block('widget_container_attributes') }}>
+            {% set date_pattern = date_pattern|replace({ '}}{{': '}}&nbsp;{{' }) %}
             {{ date_pattern|replace({
-                '{{ year }}':  form_widget(form.year),
-                '{{ month }}': form_widget(form.month),
-                '{{ day }}':   form_widget(form.day),
+                '{{ year }}':  form_widget(form.year, { 'attr': { 'class': 'input-small' } }),
+                '{{ month }}': form_widget(form.month, { 'attr': { 'class': 'input-medium' } }),
+                '{{ day }}':   form_widget(form.day, { 'attr': { 'class': 'input-mini' } }),
             })|raw }}
         </div>
     {% endif %}
@@ -217,7 +287,7 @@
         {{ block('form_widget_simple') }}
     {% else %}
         <div {{ block('widget_container_attributes') }}>
-            {{ form_widget(form.hour, { 'attr': { 'size': '1' } }) }}:{{ form_widget(form.minute, { 'attr': { 'size': '1' } }) }}{% if with_seconds %}:{{ form_widget(form.second, { 'attr': { 'size': '1' } }) }}{% endif %}
+            {{ form_widget(form.hour, { 'attr': { 'size': '1', 'class': 'input-mini' } }) }}:{{ form_widget(form.minute, { 'attr': { 'size': '1', 'class': 'input-mini' } }) }}{% if with_seconds %}:{{ form_widget(form.second, { 'attr': { 'size': '1', 'class': 'input-mini' } }) }}{% endif %}
         </div>
     {% endif %}
 {% endspaceless %}
@@ -287,6 +357,40 @@
 {% endspaceless %}
 {% endblock email_widget %}
 
+{# Buttons #}
+
+{% block submit_widget %}
+{% spaceless %}
+    {% set type = type|default('submit') %}
+    {% if attr['class'] is not defined %}
+        {% set attr = attr|merge({'class':'btn btn-primary'}) %}
+    {% endif %}
+    {{ block('button_widget') }}
+{% endspaceless %}
+{% endblock submit_widget %}
+
+{% block button_widget %}
+{% spaceless %}
+    {% if attr.class is not defined %}
+        {% set attr = attr|merge({'class':'btn'}) %}
+    {% endif %}
+
+    {% if label is empty %}
+        {% set label = name|humanize %}
+    {% endif %}
+
+    {% if form_type is defined and form_type == 'horizontal' %}
+    <div class="control-group{% if validation_state is defined %} {{validation_state}}{% endif %}">
+        <div class="controls">
+    {% endif %}
+		    <button type="{{ type|default('button') }}" {{ block('button_attributes') }}>{{ label|trans({}, translation_domain) }}</button>
+    {% if form_type is defined and form_type == 'horizontal' %}
+        </div>
+    </div>
+    {% endif %}
+{% endspaceless %}
+{% endblock button_widget %}
+
 {# Labels #}
 
 {% block form_label %}
@@ -300,10 +404,16 @@
     {% if form_type is defined and form_type == 'horizontal' %}
         {% set label_attr = label_attr|merge({'class': (label_attr.class|default('') ~ ' control-label')|trim}) %}
     {% endif %}
-    {% if label is empty %}
-        {% set label = name|humanize %}
+    {% if label is not sameas(false) %}
+        {% if label is empty %}
+            {% set label = name|humanize %}
+        {% endif %}
+        {% if original_type is defined and original_type == 'form' %}
+            <legend{% for attrname, attrvalue in label_attr %} {{ attrname }}="{{ attrvalue }}"{% endfor %}>{{ label|trans({}, translation_domain) }}</legend>
+        {% else %}
+            <label{% for attrname, attrvalue in label_attr %} {{ attrname }}="{{ attrvalue }}"{% endfor %}>{{ label|trans({}, translation_domain) }}</label>
+        {% endif %}
     {% endif %}
-    <label{% for attrname, attrvalue in label_attr %} {{ attrname }}="{{ attrvalue }}"{% endfor %}>{{ label|trans({}, translation_domain) }}</label>
 {% endspaceless %}
 {% endblock form_label %}
 
@@ -369,9 +479,10 @@
     {% elseif form_type is defined and form_type == 'horizontal' %}
         {{ block('horizontal_row') }}
     {% else %}
+        <div class="control-group{% if errors|length %} error{% endif %}{% if validation_state is defined %} {{validation_state}}{% endif %}">
         {{ form_label(form) }}
         {{ form_widget(form) }}
-        {{ form_errors(form) }}
+        </div>
     {% endif %}
 {% endspaceless %}
 {% endblock form_row %}
@@ -386,7 +497,6 @@
         {{ form_label(form) }}
         <div class="controls">
             {{ form_widget(form) }}
-            {{ form_errors(form) }}
         </div>
     </div>
 {% endspaceless %}
@@ -409,7 +519,7 @@
 
 {% block horizontal_checkbox_row %}
 {% spaceless %}
-    <div class="control-group">
+    <div class="control-group{% if errors|length %} error{% endif %}{% if validation_state is defined %} {{validation_state}}{% endif %}">
         <div class="controls">
             {{ form_label(form) }}
             {{ form_errors(form) }}
