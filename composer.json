@@ -1,6 +1,6 @@
 {
     "name":         "braincrafted/bootstrap-bundle",
-    "version":      "1.4.2",
+    "version":      "1.4.3",
     "description":  "Twitter Bootstrap for Symfony2",
     "keywords":     ["bootstrap"],
     "type":         "symfony-bundle",
@@ -13,7 +13,13 @@
         }
     ],
     "require":      {
-        "php":              ">=5.3.3"
+        "php":                          ">=5.3.3",
+        "symfony/framework-bundle":     "2.3.*",
+        "symfony/twig-bundle":          "2.3.*",
+        "symfony/form":                 "2.3.*",
+        "symfony/console":              "2.3.*",
+        "symfony/finder":               "2.3.*",
+        "symfony/symfony":              "2.3.*"
     },
     "require-dev": {
         "knplabs/knp-menu":                     "dev-master",
