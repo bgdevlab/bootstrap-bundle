@@ -25,7 +25,7 @@ First you need to add `braincrafted/bootstrap-bundle` to `composer.json`:
         }
     }
 
-Please note that `dev-master` points to the latest release. If you want to use the latest development version please use `dev-develop`. Of course you can also use an explicit version number, e.g., `1.3.*`.
+Please note that `dev-master` points to the latest release. If you want to use the latest development version please use `dev-develop`. Of course you can also use an explicit version number, e.g., `1.4.*`.
 
 You also have to add `BcBootstrapBundle` to your `AppKernel.php`:
 
@@ -71,19 +71,56 @@ Check out the [documentation](http://bootstrap.braincrafted.com) to find out how
 Compatibility
 -------------
 
-- **BcBootstrapBundle v1.3.***
-    - Twitter Bootstrap v2.3.*
-    - Symfony 2.2.*
-- **BcBootstrapBundle v1.4.***
-    - Twitter Bootstrap v2.3.*
-    - Symfony 2.2.*
+This bundle has two main dependencies, Symfony and Bootstrap. The following table shows which version of BraincraftedBootstrapBundle is compatible with which version of Symfony and Bootstrap.
+
+<table>
+    <thead>
+        <tr>
+            <th>BootstrapBundle</th>
+            <th>Symfony</th>
+            <th>Bootstrap</th>
+            <th>jQuery</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>v1.3.*</strong></td>
+            <td>v2.2.*</td>
+            <td>v2.3.*</td>
+            <td>v1.9.*</td>
+        </tr>
+        <tr>
+            <td><strong> v1.4.*</strong></td>
+            <td> `~2.3.0` (>=2.3.0,<2.4)</td>
+            <td>v2.3.*</td>
+            <td>v1.9.*</td>
+        </tr>
+        <tr>
+            <td><strong>v1.5.*</strong></td>
+            <td>v2.2.*</td>
+            <td>v2.3.*</td>
+            <td>v1.9.*</td>
+        </tr>
+        <tr>
+            <td><strong>v2.0.*</strong></td>
+            <td>v2.3.*<br>v2.4.*</td>
+            <td>v3.0.*</td>
+            <td>v1.10.*</td>
+        </tr>
+    </tbody>
+</table>
 
 
 Changelog
 ---------
 
+
 ### Version 1.4.0
 
+- Extend from base form layout
+- Allow override options in menus
+- Fixed problems with removing elements in JavaScript collection form type
+- Works with new Bootstrap repository `twbs/bootstrap`
 - Changed namespace to `Bc\Bundle\BootstrapBundle`
 - Automatically configure Twig
 - Automatically configure KnpMenuBundle
